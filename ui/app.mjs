@@ -377,7 +377,7 @@ function finish() {
         <button class="primary" data-action="ending-next">نكمل <span aria-hidden="true">←</span></button>
         <button data-action="ending-skip">ورّيني الكلّ</button>
       </div>
-      <button data-action="start">نعاود نلعب</button><button data-action="journal">نفتح الدفتر</button>
+      <button data-action="start">نعاود نلعب</button><button data-action="feedback">قلّنا رايك</button>
       ${notice ? `<span class="notice" role="status">${messages[notice]}</span>` : ''}</footer>
   </main>`;
 }
@@ -602,6 +602,19 @@ dialog.addEventListener('close', () => {
   if (previousFocus?.isConnected) previousFocus.focus();
 });
 
+const feedbackQuestions = [
+  'وين تلخبطت ولا وقفت؟',
+  'شنوّة اللحظة اللي خلاّتك تبدّل رايك؟',
+];
+
+function feedbackPanel() {
+  const subject = encodeURIComponent('رايي في بين السطور');
+  const body = encodeURIComponent(feedbackQuestions.map(question => question + '\n').join('\n\n'));
+  openPanel('قلّنا رايك', `<p>كان تحبّ تعاونّا نحسّنوا الحكاية، جاوبنا على هالزوز أسئلة.</p>
+    <ol>${feedbackQuestions.map(question => `<li>${question}</li>`).join('')}</ol>
+    <p><a href="mailto:khalil.benmaaoui@gmail.com?subject=${subject}&amp;body=${body}">نكتب إيميل</a></p>`);
+}
+
 function settingsPanel() {
   openPanel('الضبط', `<div class="settings">
     <div class="confidence"><label for="volume">قوّة الصوت</label>
@@ -715,6 +728,7 @@ document.addEventListener('click', event => {
       break;
     case 'close': dialog.close(); break;
     case 'settings': settingsPanel(); break;
+    case 'feedback': feedbackPanel(); break;
     case 'journal': journal(); break;
     case 'source': source(); break;
     case 'ending-page': openEndingPage(control.dataset.id); break;

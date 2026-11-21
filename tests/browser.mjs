@@ -7,7 +7,7 @@ import { chromium } from 'playwright';
 const prefix = process.env.GAME_TEST_PREFIX ?? '/';
 assert.match(prefix, /^\/(?:[\w-]+\/)*$/);
 const output = resolve('dist');
-const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css' };
+const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.jpg': 'image/jpeg' };
 const server = createServer(async (request, response) => {
   const pathname = new URL(request.url, 'http://localhost').pathname;
   const target = resolve(output, pathname.startsWith(prefix) ? pathname.slice(prefix.length) + (pathname.endsWith('/') ? 'index.html' : '') : '..');
@@ -40,7 +40,10 @@ const verseAudio = verseAudioPath
 let browser;
 
 try {
-  assert.equal((await fetch(route)).status, 200, 'game index loads at the configured URL');
+  const response = await fetch(route);
+  assert.equal(response.status, 200, 'game index loads at the configured URL');
+  assert.match(await response.text(), /property="og:image" content="https:\/\/baynasotour\.site\/share\.jpg"/);
+  assert.equal((await fetch(new URL('share.jpg', route))).headers.get('content-type'), 'image/jpeg');
   browser = await chromium.launch({
     executablePath: process.env.CHROMIUM_BIN || undefined,
     args: ['--no-sandbox'],
@@ -398,6 +401,12 @@ try {
     await choose(variant.ending);
     await drain();
     assert.equal(await page.locator('#scene-title').textContent(), variant.title);
+    await click(action('feedback'));
+    assert.match(await panel.innerText(), /وين تلخبطت ولا وقفت/);
+    assert.match(await panel.innerText(), /اللحظة اللي خلاّتك تبدّل رايك/);
+    assert.match(await panel.getByRole('link', { name: 'نكتب إيميل' }).getAttribute('href'), /^mailto:/);
+    await click(action('close', panel));
+    assert.equal(await action('feedback').evaluate(el => el === document.activeElement), true);
     const recap = page.locator('.case-recap').first();
     assert.match(await page.locator('.finale-hero .label').innerText(), /الحكاية/);
     assert.equal(await recap.locator('dl > div').first().isVisible(), false);

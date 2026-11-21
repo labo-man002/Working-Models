@@ -375,7 +375,6 @@ html:has(body.playing), body.playing { height:100%; min-height:0; overflow:hidde
 }
 .prologue { width:min(100%,48rem); padding:clamp(1rem,5vw,3.3rem); animation:opening-title .7s ease-out both }
 .prologue .line { margin-block:.7rem 1rem; text-shadow:0 1px 10px #000; }
-.prologue-speaker { color:var(--text); font-weight:700; margin-block-start:.35rem }
 .prologue h1 { font-size:clamp(1.65rem,5vw,3.25rem); color:var(--amber) }
 
 .phone-screen {

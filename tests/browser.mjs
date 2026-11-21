@@ -228,17 +228,11 @@ try {
     assert.equal(await page.locator('.chapter-stage canvas').count(), 1);
     assert.equal(await music.getAttribute('aria-pressed'), quietStart ? 'false' : 'true');
     await click(action('start'));
-    assert.match(await page.locator('#prologue-title').innerText(), /قرا الميساج وما جاوبش/);
-    assert.match(await page.locator('.prologue-speaker').innerText(), /سامي، متطوّع في جمعيّة الجسر/);
-    assert.match(await page.locator('.prologue .line').innerText(), /الحساب لازم يتبعث غدوة/);
+    assert.match(await page.locator('#prologue-title').innerText(), /سامي/);
+    assert.match(await page.locator('.prologue .line').innerText(), /متطوّع في جمعيّة الجسر/);
     assert.equal(await page.locator('.first-clue').count(), 0);
     if (quietStart) await click(action('skip-opening'));
-    else {
-      await click(action('advance'));
-      assert.match(await page.locator('#prologue-title').innerText(), /التليفون رنّ/);
-      assert.match(await page.locator('.prologue .line').innerText(), /نوزّعوا القفف/);
-      await drain();
-    }
+    else await drain();
     assert.equal(await page.locator('.first-clue').evaluate(el => document.activeElement === el), true);
     if (quietStart) {
       assert.equal(await page.evaluate(() => window.musicMeter), undefined);

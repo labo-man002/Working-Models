@@ -157,7 +157,7 @@ function chapterMenu() {
       <div class="chapter-details">
         <p class="label">الحكاية اللّولة</p>
         <h2 id="chapter-one-title">اللّي ما تقالش</h2>
-        <p class="chapter-description">غدوة عندكم توزيع القفف. الليلة بعثت ميساج لآدم على حساب التبرّعات. قراه وما جاوبكش.</p>
+        <p class="chapter-description">بعثت ميساج لآدم باش يراجع حساب التبرّعات. قراه وما جاوبش. قبل ما تبعث التقرير، لينا تقلك تستنّى.</p>
         ${progress ? `<p class="chapter-progress">${progress}</p>` : ''}
         <div class="toolbar chapter-actions">
           <button class="primary" data-action="${action}">${label}</button>
@@ -240,17 +240,15 @@ function storyLine(text) {
 }
 
 function prologue(beat) {
-  const firstBeat = state.beatIndex === 0;
   return `<section class="prologue" aria-labelledby="prologue-title">
     <div class="prologue-copy">
       <p class="label">نهار الخميس في الليل</p>
-      <h1 id="prologue-title">${firstBeat ? 'قرا الميساج وما جاوبش' : 'التليفون رنّ'}</h1>
-      <p class="prologue-speaker">أنا سامي، متطوّع في جمعيّة الجسر.</p>
+      <h1 id="prologue-title">أنا سامي</h1>
       ${storyLine(beat.text)}
     </div>
     <div class="toolbar prologue-actions">
-      <button class="primary" data-action="advance">${firstBeat ? 'نكمل' : 'ندخل للدار'}</button>
-      ${firstBeat ? '<button data-action="skip-opening">نتعدّى للّعب</button>' : ''}
+      <button class="primary" data-action="advance">${state.beatIndex === 0 ? 'نكمل' : 'ندخل للدار'}</button>
+      <button data-action="skip-opening">نتعدّى للّعب</button>
     </div>
   </section>`;
 }

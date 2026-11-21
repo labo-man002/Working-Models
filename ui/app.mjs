@@ -602,63 +602,69 @@ dialog.addEventListener('close', () => {
   if (previousFocus?.isConnected) previousFocus.focus();
 });
 
+const feedbackEndpoint = 'https://baynasotour-feedback.khalil-benmaaoui.chatgpt.site/feedback';
 const feedbackQuestions = [
-  ['وين تلخبطت ولا وقفت؟', ['البداية', 'وقت التحقيق', 'في الآخر', 'كل شي كان واضح']],
-  ['شنوّة خلاّك تبدّل رايك؟', ['حكاية آدم', 'كشف البنك', 'حكاية مريم', 'ما بدّلتش رايي']],
+  ['confusion', 'وين تلخبطت ولا وقفت؟', [
+    ['start', 'البداية'], ['middle', 'في وسط الحكاية'], ['ending', 'في الآخر'], ['clear', 'كل شي كان واضح'],
+  ]],
+  ['turningPoint', 'شنوّة خلاّك تبدّل رايك؟', [
+    ['adam', 'حكاية آدم'], ['bank', 'كشف البنك'], ['maryam', 'حكاية مريم'], ['unchanged', 'ما بدّلتش رايي'],
+  ]],
 ];
+let feedbackId;
+let feedbackSent = false;
 
 function feedbackPanel() {
+  if (feedbackSent) {
+    openPanel('قلّنا رايك', '<p>يعطيك الصحّة، وصلنا رايك!</p>');
+    return;
+  }
   openPanel('قلّنا رايك', `<form id="feedback">
     <p>اختار اللي ينطبق عليك. تنجّم تجاوب على سؤال واحد وإلّا على الزوز.</p>
-    ${feedbackQuestions.map(([question, options], index) => `<fieldset class="feedback-question">
+    ${feedbackQuestions.map(([name, question, options]) => `<fieldset class="feedback-question">
       <legend>${question}</legend>
-      <div class="feedback-options">${options.map(option => `<label class="choice">
-        <input type="radio" name="answer-${index}" value="${option}"><span>${option}</span>
+      <div class="feedback-options">${options.map(([value, label]) => `<label class="choice">
+        <input type="radio" name="${name}" value="${value}"><span>${label}</span>
       </label>`).join('')}</div>
     </fieldset>`).join('')}
     <label class="feedback-note" for="feedback-note">تحبّ تزيد حاجة؟</label>
     <textarea id="feedback-note" name="note" maxlength="300" rows="2" placeholder="مثلاً: حاجة عجبتك وإلّا قلّقتك"></textarea>
-    <p class="hint">تنجّم تنسخ رايك وتبعثو في الميساج، وإلّا تبعثو بالإيميل.</p>
-    <div class="toolbar">
-      <button class="primary" type="submit" value="copy">ننسخ رايي</button>
-      <button type="submit" value="email">نكتب إيميل</button>
-    </div>
+    <p class="hint">رايك يتسجّل من غير اسم ولا إيميل.</p>
+    <div class="toolbar"><button class="primary" type="submit">نبعث رايي</button></div>
     <p class="hint" role="status" id="feedback-status"></p>
-    <textarea aria-label="رايك للنسخ" id="feedback-copy" rows="4" readonly hidden></textarea>
   </form>`);
 }
 
 async function shareFeedback(event) {
   const form = event.target;
   const fields = new FormData(form);
-  const answers = feedbackQuestions.flatMap(([question], index) => {
-    const answer = fields.get(`answer-${index}`);
-    return answer ? [`${question} ${answer}`] : [];
-  });
+  const confusion = fields.get('confusion');
+  const turningPoint = fields.get('turningPoint');
   const note = fields.get('note').trim();
-  if (note) answers.push(note);
   const status = form.querySelector('#feedback-status');
-  const fallback = form.querySelector('#feedback-copy');
-  fallback.hidden = true;
-  status.textContent = '';
-  if (!answers.length) {
+  const submit = form.querySelector('button[type="submit"]');
+  if (!confusion && !turningPoint && !note) {
     status.textContent = 'اختار إجابة وإلّا اكتب كلمة.';
     return;
   }
-  const message = ['رايي في بين السطور', ...answers].join('\n\n');
-  if (event.submitter?.value === 'email') {
-    window.location.href = `mailto:khalil.benmaaoui@gmail.com?subject=${encodeURIComponent('رايي في بين السطور')}&body=${encodeURIComponent(answers.join('\r\n\r\n'))}`;
-    return;
-  }
+  if (submit.disabled || feedbackSent) return;
+  submit.disabled = true;
+  status.textContent = 'قاعدين نبعثو في رايك…';
   try {
-    await navigator.clipboard.writeText(message);
-    status.textContent = 'تنسخ رايك. توّة تنجّم تلصّقو في الميساج.';
+    feedbackId ??= crypto.randomUUID();
+    const response = await fetch(feedbackEndpoint, {
+      method: 'POST',
+      credentials: 'omit',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: feedbackId, confusion, turningPoint, note }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!response.ok || (await response.json()).code !== 'saved') throw new Error('Feedback was not saved');
+    feedbackSent = true;
+    status.textContent = 'يعطيك الصحّة، وصلنا رايك!';
   } catch {
-    fallback.value = message;
-    fallback.hidden = false;
-    fallback.focus();
-    fallback.select();
-    status.textContent = 'انقل النصّ هذا والميساج حاضر.';
+    status.textContent = 'ما نجّمش نبعثو رايك توّة. جرّب مرّة أخرى.';
+    submit.disabled = false;
   }
 }
 

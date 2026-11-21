@@ -404,21 +404,26 @@ try {
     await click(action('feedback'));
     assert.match(await panel.innerText(), /وين تلخبطت ولا وقفت/);
     assert.match(await panel.innerText(), /شنوّة خلاّك تبدّل رايك/);
-    const copyFeedback = panel.getByRole('button', { name: 'ننسخ رايي' });
-    await click(copyFeedback);
+    const submitFeedback = panel.getByRole('button', { name: 'نبعث رايي' });
+    await click(submitFeedback);
     assert.match(await panel.locator('#feedback-status').innerText(), /اختار إجابة/);
-    await page.evaluate(() => {
-      Object.defineProperty(navigator.clipboard, 'writeText', {
-        configurable: true, value: async () => { throw new Error('Clipboard unavailable'); },
-      });
+    let submitted;
+    let attempts = 0;
+    await page.route('**/feedback', async route => {
+      const body = route.request().postDataJSON();
+      if (submitted) assert.deepEqual(body, submitted, 'retry keeps the same id and answers');
+      submitted = body;
+      attempts++;
+      await route.fulfill({ status: attempts === 1 ? 200 : 201, json: { code: attempts === 1 ? 'storage' : 'saved' } });
     });
     await click(panel.getByText('في الآخر', { exact: true }));
     await click(panel.getByText('كشف البنك', { exact: true }));
     await panel.locator('#feedback-note').fill('الخط واضح');
-    await click(copyFeedback);
-    await panel.locator('#feedback-copy').waitFor({ state: 'visible' });
-    assert.match(await panel.locator('#feedback-copy').inputValue(), /في الآخر[\s\S]*كشف البنك[\s\S]*الخط واضح/);
-    assert(await panel.getByRole('button', { name: 'نكتب إيميل' }).isVisible());
+    await click(submitFeedback);
+    await panel.getByText(/جرّب مرّة أخرى/).waitFor();
+    await click(submitFeedback);
+    await panel.getByText(/وصلنا رايك/).waitFor();
+    assert.deepEqual({ ...submitted, id: undefined }, { id: undefined, confusion: 'ending', turningPoint: 'bank', note: 'الخط واضح' });
     await click(action('close', panel));
     assert.equal(await action('feedback').evaluate(el => el === document.activeElement), true);
     const recap = page.locator('.case-recap').first();

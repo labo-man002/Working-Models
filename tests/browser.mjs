@@ -403,8 +403,22 @@ try {
     assert.equal(await page.locator('#scene-title').textContent(), variant.title);
     await click(action('feedback'));
     assert.match(await panel.innerText(), /وين تلخبطت ولا وقفت/);
-    assert.match(await panel.innerText(), /اللحظة اللي خلاّتك تبدّل رايك/);
-    assert.match(await panel.getByRole('link', { name: 'نكتب إيميل' }).getAttribute('href'), /^mailto:/);
+    assert.match(await panel.innerText(), /شنوّة خلاّك تبدّل رايك/);
+    const copyFeedback = panel.getByRole('button', { name: 'ننسخ رايي' });
+    await click(copyFeedback);
+    assert.match(await panel.locator('#feedback-status').innerText(), /اختار إجابة/);
+    await page.evaluate(() => {
+      Object.defineProperty(navigator.clipboard, 'writeText', {
+        configurable: true, value: async () => { throw new Error('Clipboard unavailable'); },
+      });
+    });
+    await click(panel.getByText('في الآخر', { exact: true }));
+    await click(panel.getByText('كشف البنك', { exact: true }));
+    await panel.locator('#feedback-note').fill('الخط واضح');
+    await click(copyFeedback);
+    await panel.locator('#feedback-copy').waitFor({ state: 'visible' });
+    assert.match(await panel.locator('#feedback-copy').inputValue(), /في الآخر[\s\S]*كشف البنك[\s\S]*الخط واضح/);
+    assert(await panel.getByRole('button', { name: 'نكتب إيميل' }).isVisible());
     await click(action('close', panel));
     assert.equal(await action('feedback').evaluate(el => el === document.activeElement), true);
     const recap = page.locator('.case-recap').first();

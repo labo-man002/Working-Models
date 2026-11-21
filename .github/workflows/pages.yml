@@ -26,6 +26,10 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      - name: Preserve the old game link
+        run: |
+          mkdir -p dist/hidden-layers-of-truth
+          cp -r dist/index.html dist/assets dist/hidden-layers-of-truth/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
@@ -39,6 +43,8 @@ jobs:
           for attempt in {1..15}; do
             if gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" \
                 --jq ".artifacts[] | select(.name == \"$PAGES_ARTIFACT\" and (.expired | not)) | .id" | grep -q .; then
+              # The Pages deployment endpoint can see artifacts later than the Actions list.
+              sleep 10
               exit 0
             fi
             sleep 2

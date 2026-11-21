@@ -525,3 +525,11 @@ html:has(body.playing), body.playing { height:100%; min-height:0; overflow:hidde
 .finale-reading:not([hidden]) { display:flex; flex-wrap:wrap; gap:.4rem }
 .ending-pending, .finale-page:has(.ending-pending) > [data-ending-link] { display:none }
 .ending-arriving:not(.ending-instant) { animation:finale-reveal .42s cubic-bezier(.18,.66,.31,1) both }
+
+.feedback-question { margin-block:1rem }
+.feedback-question legend, .feedback-note { font-weight:700 }
+.feedback-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.35rem }
+#feedback textarea {
+  width:100%; margin-block:.35rem; padding:.5rem; color:var(--text); background:#101a20;
+  border:1px solid var(--frame); border-radius:.35rem; font:inherit; resize:vertical;
+}

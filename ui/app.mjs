@@ -603,16 +603,63 @@ dialog.addEventListener('close', () => {
 });
 
 const feedbackQuestions = [
-  'وين تلخبطت ولا وقفت؟',
-  'شنوّة اللحظة اللي خلاّتك تبدّل رايك؟',
+  ['وين تلخبطت ولا وقفت؟', ['البداية', 'وقت التحقيق', 'في الآخر', 'كل شي كان واضح']],
+  ['شنوّة خلاّك تبدّل رايك؟', ['حكاية آدم', 'كشف البنك', 'حكاية مريم', 'ما بدّلتش رايي']],
 ];
 
 function feedbackPanel() {
-  const subject = encodeURIComponent('رايي في بين السطور');
-  const body = encodeURIComponent(feedbackQuestions.map(question => question + '\n').join('\n\n'));
-  openPanel('قلّنا رايك', `<p>كان تحبّ تعاونّا نحسّنوا الحكاية، جاوبنا على هالزوز أسئلة.</p>
-    <ol>${feedbackQuestions.map(question => `<li>${question}</li>`).join('')}</ol>
-    <p><a href="mailto:khalil.benmaaoui@gmail.com?subject=${subject}&amp;body=${body}">نكتب إيميل</a></p>`);
+  openPanel('قلّنا رايك', `<form id="feedback">
+    <p>اختار اللي ينطبق عليك. تنجّم تجاوب على سؤال واحد وإلّا على الزوز.</p>
+    ${feedbackQuestions.map(([question, options], index) => `<fieldset class="feedback-question">
+      <legend>${question}</legend>
+      <div class="feedback-options">${options.map(option => `<label class="choice">
+        <input type="radio" name="answer-${index}" value="${option}"><span>${option}</span>
+      </label>`).join('')}</div>
+    </fieldset>`).join('')}
+    <label class="feedback-note" for="feedback-note">تحبّ تزيد حاجة؟</label>
+    <textarea id="feedback-note" name="note" maxlength="300" rows="2" placeholder="مثلاً: حاجة عجبتك وإلّا قلّقتك"></textarea>
+    <p class="hint">تنجّم تنسخ رايك وتبعثو في الميساج، وإلّا تبعثو بالإيميل.</p>
+    <div class="toolbar">
+      <button class="primary" type="submit" value="copy">ننسخ رايي</button>
+      <button type="submit" value="email">نكتب إيميل</button>
+    </div>
+    <p class="hint" role="status" id="feedback-status"></p>
+    <textarea aria-label="رايك للنسخ" id="feedback-copy" rows="4" readonly hidden></textarea>
+  </form>`);
+}
+
+async function shareFeedback(event) {
+  const form = event.target;
+  const fields = new FormData(form);
+  const answers = feedbackQuestions.flatMap(([question], index) => {
+    const answer = fields.get(`answer-${index}`);
+    return answer ? [`${question} ${answer}`] : [];
+  });
+  const note = fields.get('note').trim();
+  if (note) answers.push(note);
+  const status = form.querySelector('#feedback-status');
+  const fallback = form.querySelector('#feedback-copy');
+  fallback.hidden = true;
+  status.textContent = '';
+  if (!answers.length) {
+    status.textContent = 'اختار إجابة وإلّا اكتب كلمة.';
+    return;
+  }
+  const message = ['رايي في بين السطور', ...answers].join('\n\n');
+  if (event.submitter?.value === 'email') {
+    window.location.href = `mailto:khalil.benmaaoui@gmail.com?subject=${encodeURIComponent('رايي في بين السطور')}&body=${encodeURIComponent(answers.join('\r\n\r\n'))}`;
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(message);
+    status.textContent = 'تنسخ رايك. توّة تنجّم تلصّقو في الميساج.';
+  } catch {
+    fallback.value = message;
+    fallback.hidden = false;
+    fallback.focus();
+    fallback.select();
+    status.textContent = 'انقل النصّ هذا والميساج حاضر.';
+  }
 }
 
 function settingsPanel() {
@@ -778,6 +825,11 @@ document.addEventListener('invalid', event => {
 }, true);
 
 document.addEventListener('submit', event => {
+  if (event.target.id === 'feedback') {
+    event.preventDefault();
+    void shareFeedback(event);
+    return;
+  }
   if (event.target.id !== 'decision') return;
   event.preventDefault();
   const form = new FormData(event.target);
